@@ -62,6 +62,7 @@ class AutocompleteView extends SelectListView
   getCompletionsForCursorScope: ->
     cursorScope = @editor.scopesForBufferPosition(@editor.getCursorBufferPosition())
     completions = atom.syntax.propertiesForScope(cursorScope, 'editor.completions')
+    completions2 =
     completions = completions.map (properties) -> _.valueForKeyPath(properties, 'editor.completions')
     _.uniq(_.flatten(completions))
 
@@ -105,9 +106,15 @@ class AutocompleteView extends SelectListView
 
     return @cancel() unless @allPrefixAndSuffixOfSelectionsMatch()
 
-    @buildWordList()
-    matches = @findMatchesForCurrentSelection()
-    @setItems(matches)
+    # get our autocomplete shit here
+    proc = process.spawn('python ./completions.py', [@editor.getSelectedText(), 1, @editor.getCursorScreenPosition()])
+    dataOut = ""
+    output = byline(proc.stdout)
+      output.on 'data', (line) =>
+        dataOut += line.toString()
+    proc.on 'exit', (exit_code, signal) ->
+      console.log(dataOut)
+      #@setItems(dataOut)
 
     if matches.length is 1
       @confirmSelection()
