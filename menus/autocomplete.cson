@@ -1,3 +1,3 @@
 'context-menu':
   '.overlayer':
-    'Autocomplete': 'autocomplete:toggle'
+    'Autocomplete': 'autocomplete-jedi:toggle'

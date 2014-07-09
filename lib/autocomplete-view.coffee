@@ -1,4 +1,6 @@
 _ = require 'underscore-plus'
+process = require 'child_process'
+path = require 'path'
 {$, $$, Range, SelectListView}  = require 'atom'
 
 module.exports =
@@ -12,7 +14,7 @@ class AutocompleteView extends SelectListView
 
   initialize: (@editorView) ->
     super
-    @addClass('autocomplete popover-list')
+    @addClass('autocomplete-jedi popover-list')
     {@editor} = @editorView
     @handleEvents()
     @setCurrentBuffer(@editor.getBuffer())
@@ -29,13 +31,13 @@ class AutocompleteView extends SelectListView
     @list.on 'mousewheel', (event) -> event.stopPropagation()
 
     @editorView.on 'editor:path-changed', => @setCurrentBuffer(@editor.getBuffer())
-    @editorView.command 'autocomplete:toggle', =>
+    @editorView.command 'autocomplete-jedi:toggle', =>
       if @hasParent()
         @cancel()
       else
         @attach()
-    @editorView.command 'autocomplete:next', => @selectNextItemView()
-    @editorView.command 'autocomplete:previous', => @selectPreviousItemView()
+    @editorView.command 'autocomplete-jedi:next', => @selectNextItemView()
+    @editorView.command 'autocomplete-jedi:previous', => @selectPreviousItemView()
 
     @filterEditorView.preempt 'textInput', ({originalEvent}) =>
       text = originalEvent.data
@@ -59,30 +61,8 @@ class AutocompleteView extends SelectListView
     super
     false
 
-  getCompletionsForCursorScope: ->
-    cursorScope = @editor.scopesForBufferPosition(@editor.getCursorBufferPosition())
-    completions = atom.syntax.propertiesForScope(cursorScope, 'editor.completions')
-    completions2 =
-    completions = completions.map (properties) -> _.valueForKeyPath(properties, 'editor.completions')
-    _.uniq(_.flatten(completions))
-
-  buildWordList: ->
-    wordHash = {}
-    if atom.config.get('autocomplete.includeCompletionsFromAllBuffers')
-      buffers = atom.project.getBuffers()
-    else
-      buffers = [@currentBuffer]
-    matches = []
-    matches.push(buffer.getText().match(@wordRegex)) for buffer in buffers
-    wordHash[word] ?= true for word in _.flatten(matches) when word
-    wordHash[word] ?= true for word in @getCompletionsForCursorScope() when word
-
-    @wordList = Object.keys(wordHash).sort (word1, word2) ->
-      word1.toLowerCase().localeCompare(word2.toLowerCase())
-
   confirmed: (match) ->
     @editor.getSelections().forEach (selection) -> selection.clear()
-
     @cancel()
     return unless match
     @replaceSelectedTextWithMatch match
@@ -92,36 +72,46 @@ class AutocompleteView extends SelectListView
 
   cancelled: ->
     super
-
     @editor.abortTransaction()
     @editor.setSelectedBufferRanges(@originalSelectionBufferRanges)
     @editorView.focus()
 
   attach: ->
     @editor.beginTransaction()
-
     @aboveCursor = false
     @originalSelectionBufferRanges = @editor.getSelections().map (selection) -> selection.getBufferRange()
     @originalCursorPosition = @editor.getCursorScreenPosition()
-
     return @cancel() unless @allPrefixAndSuffixOfSelectionsMatch()
 
     # get our autocomplete shit here
-    proc = process.spawn('python ./completions.py', [@editor.getSelectedText(), 1, @editor.getCursorScreenPosition()])
-    dataOut = ""
-    output = byline(proc.stdout)
-      output.on 'data', (line) =>
-        dataOut += line.toString()
-    proc.on 'exit', (exit_code, signal) ->
-      console.log(dataOut)
-      #@setItems(dataOut)
+    point = @editor.getCursorScreenPosition()
+    args = [path.resolve(__dirname, 'completions.py'), @editor.getText(), point.row + 1, point.column]
+    @jediProc = process.spawn('python', args)
 
-    if matches.length is 1
-      @confirmSelection()
-    else
-      @editorView.appendToLinesView(this)
-      @setPosition()
-      @focusFilterEditor()
+    @dataOut = ""
+    me = @
+    @jediProc.stdout.on 'data', (line) =>
+      me.dataOut += line.toString() + '\n'
+    @jediProc.on 'exit', (exit_code, signal) ->
+      tempArr = me.dataOut.split('\n')
+      me.wordList = []
+      for h in tempArr
+        t = h.split(':::')
+        if t[1]?
+          word = t[1]
+          suffix = t[0]
+          prefix = word.substring(0, word.lastIndexOf(suffix))
+          if word.charAt(0) isnt '_'
+            me.wordList.push({ word: word, prefix: prefix, suffix: '' })
+
+      # select if only one match else show list
+      console.log(me.wordList)
+      if me.wordList.length is 1
+        me.confirmSelection()
+      me.setItems(me.wordList)
+      me.editorView.appendToLinesView(me)
+      me.setPosition()
+      me.focusFilterEditor()
 
   setPosition: ->
     {left, top} = @editorView.pixelPositionForScreenPosition(@originalCursorPosition)
@@ -132,24 +122,11 @@ class AutocompleteView extends SelectListView
     parentWidth = @parent().width()
 
     left = parentWidth - width if left + width > parentWidth
-
     if @aboveCursor or potentialBottom > @editorView.outerHeight()
       @aboveCursor = true
       @css(left: left, top: top - height, bottom: 'inherit')
     else
       @css(left: left, top: potentialTop, bottom: 'inherit')
-
-  findMatchesForCurrentSelection: ->
-    selection = @editor.getSelection()
-    {prefix, suffix} = @prefixAndSuffixOfSelection(selection)
-
-    if (prefix.length + suffix.length) > 0
-      regex = new RegExp("^#{prefix}.+#{suffix}$", "i")
-      currentWord = prefix + @editor.getSelectedText() + suffix
-      for word in @wordList when regex.test(word) and word != currentWord
-        {prefix, suffix, word}
-    else
-      {word, prefix, suffix} for word in @wordList
 
   replaceSelectedTextWithMatch: (match) ->
     newSelectedBufferRanges = []
@@ -158,14 +135,11 @@ class AutocompleteView extends SelectListView
     selections.forEach (selection, i) =>
       startPosition = selection.getBufferRange().start
       buffer = @editor.getBuffer()
-
       selection.deleteSelectedText()
       cursorPosition = @editor.getCursors()[i].getBufferPosition()
       buffer.delete(Range.fromPointWithDelta(cursorPosition, 0, match.suffix.length))
       buffer.delete(Range.fromPointWithDelta(cursorPosition, 0, -match.prefix.length))
-
       infixLength = match.word.length - match.prefix.length - match.suffix.length
-
       newSelectedBufferRanges.push([startPosition, [startPosition.row, startPosition.column + infixLength]])
 
     @editor.insertText(match.word)
@@ -182,7 +156,6 @@ class AutocompleteView extends SelectListView
       if range.intersectsWith(selectionRange)
         prefixOffset = selectionRange.start.column - range.start.column
         suffixOffset = selectionRange.end.column - range.end.column
-
         prefix = match[0][0...prefixOffset] if range.start.isLessThan(selectionRange.start)
         suffix = match[0][suffixOffset..] if range.end.isGreaterThan(selectionRange.end)
 
@@ -190,12 +163,9 @@ class AutocompleteView extends SelectListView
 
   allPrefixAndSuffixOfSelectionsMatch: ->
     {prefix, suffix} = {}
-
     @editor.getSelections().every (selection) =>
       [previousPrefix, previousSuffix] = [prefix, suffix]
-
       {prefix, suffix} = @prefixAndSuffixOfSelection(selection)
-
       return true unless previousPrefix? and previousSuffix?
       prefix is previousPrefix and suffix is previousSuffix
 
@@ -209,5 +179,4 @@ class AutocompleteView extends SelectListView
 
   populateList: ->
     super
-
     @setPosition()

@@ -1,6 +1,6 @@
 '.editor':
-  'ctrl-space': 'autocomplete:toggle'
+  'ctrl-alt-space': 'autocomplete-jedi:toggle'
 
-'.autocomplete .mini.editor input':
+'.autocomplete-jedi .mini.editor input':
   'enter': 'core:confirm'
   'tab': 'core:confirm'

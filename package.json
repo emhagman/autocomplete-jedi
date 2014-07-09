@@ -1,12 +1,11 @@
 {
-  "name": "autocomplete",
-  "version": "0.28.0",
+  "name": "autocomplete-jedi",
   "main": "./lib/autocomplete",
-  "description": "Display possible completions in the editor with `ctrl-space`.",
+  "description": "Python autocomplete based off of the built-in 'autocomplete' package using Ctrl+Alt+Space. Requires jedi python module.",
   "activationEvents": {
-    "autocomplete:toggle": ".editor"
+    "autocomplete-jedi:toggle": ".editor"
   },
-  "repository": "https://github.com/atom/autocomplete",
+  "repository": "https://github.com/emhagman/autocomplete-jedi",
   "engines": {
     "atom": "*"
   },
