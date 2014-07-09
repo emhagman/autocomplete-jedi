@@ -6,3 +6,4 @@ You must have the Python module 'jedi' installed:
     (sudo) pip install jedi
 
 ### Very basic functionality at the moment
+### Does not currently support introspection within self created modules
