@@ -85,7 +85,7 @@ class AutocompleteView extends SelectListView
 
     # get our autocomplete shit here
     point = @editor.getCursorScreenPosition()
-    args = [path.resolve(__dirname, 'completions.py'), @editor.getText(), point.row + 1, point.column]
+    args = [path.resolve(__dirname, 'completions.py'), @editor.getText(), point.row + 1, point.column, __dirname]
     @jediProc = process.spawn('python', args)
 
     @dataOut = ""
