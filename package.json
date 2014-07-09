@@ -1,7 +1,7 @@
 {
   "name": "autocomplete-jedi",
   "main": "./lib/autocomplete",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Python autocomplete based off of the built-in 'autocomplete' package.",
   "activationEvents": {
     "autocomplete-jedi:toggle": ".editor"
