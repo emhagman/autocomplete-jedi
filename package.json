@@ -1,7 +1,7 @@
 {
   "name": "autocomplete-jedi",
   "main": "./lib/autocomplete",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Python autocomplete based off of the built-in 'autocomplete' package using Ctrl+Alt+Space. Requires jedi python module.",
   "activationEvents": {
     "autocomplete-jedi:toggle": ".editor"
