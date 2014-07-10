@@ -13,4 +13,4 @@ path = sys.argv[4]
 script = jedi.Script(source, int(start), int(length), path)
 completions = script.completions()
 for c in completions:
-    print "%s:::%s" % (c.complete, c.name)
+    print "%s:::%s:::%s" % (c.name, c.complete, c.type)
