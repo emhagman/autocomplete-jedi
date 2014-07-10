@@ -20,12 +20,12 @@ class AutocompleteView extends SelectListView
     @setCurrentBuffer(@editor.getBuffer())
 
   getFilterKey: ->
-    'word'
+    'full'
 
-  viewForItem: ({word}) ->
+  viewForItem: ({full}) ->
     $$ ->
       @li =>
-        @span word
+        @span full
 
   handleEvents: ->
     @list.on 'mousewheel', (event) -> event.stopPropagation()
@@ -100,14 +100,15 @@ class AutocompleteView extends SelectListView
       for h in tempArr
         t = h.split(':::')
         if t[1]?
-          word = t[1]
-          suffix = t[0]
+          word = t[0]
+          suffix = t[1]
           prefix = word.substring(0, word.lastIndexOf(suffix))
+          typee = t[2]
+          full = "#{word} <#{typee}>"
           if word.charAt(0) isnt '_'
-            me.wordList.push({ word: word, prefix: prefix, suffix: '' })
+            me.wordList.push({word: word, prefix: prefix, suffix: '', full: full})
 
       # select if only one match else show list
-      console.log(me.wordList)
       if me.wordList.length is 1
         me.confirmSelection()
       me.setItems(me.wordList)
