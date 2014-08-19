@@ -108,13 +108,13 @@ class AutocompleteView extends SelectListView
           if word.charAt(0) isnt '_'
             me.wordList.push({word: word, prefix: prefix, suffix: '', full: full})
 
-      # select if only one match else show list
-      if me.wordList.length is 1
-        me.confirmSelection()
       me.setItems(me.wordList)
       me.editorView.appendToLinesView(me)
       me.setPosition()
       me.focusFilterEditor()
+      # select if only one match else show list
+      if me.wordList.length is 1
+        me.confirmSelection()
 
   setPosition: ->
     {left, top} = @editorView.pixelPositionForScreenPosition(@originalCursorPosition)
