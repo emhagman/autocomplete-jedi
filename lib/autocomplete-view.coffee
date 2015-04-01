@@ -86,9 +86,11 @@ class AutocompleteView extends SelectListView
     # get our autocomplete shit here
     point = @editor.getCursorScreenPosition()
     pyfile = @editor.getBuffer().getPath()
-    console.log('Inspecing: ' + pyfile)
+    console.log('Inspecting: ' + pyfile)
     args = [path.resolve(__dirname, 'completions.py'), @editor.getText(), point.row + 1, point.column, pyfile]
-    @jediProc = process.spawn('python', args)
+   
+    whichPython = atom.config.get('autocomplete-jedi.whichPython')
+    @jediProc = process.spawn(whichPython, args)
 
     @dataOut = ""
     me = @
