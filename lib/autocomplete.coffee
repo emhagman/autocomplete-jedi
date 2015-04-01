@@ -2,8 +2,13 @@ _ = require 'underscore-plus'
 AutocompleteView = require './autocomplete-view'
 
 module.exports =
-  configDefaults:
-    includeCompletionsFromAllBuffers: false
+  config:
+    includeCompletionsFromAllBuffers: 
+      type: 'boolean'
+      default: false
+    whichPython:
+      type: 'string'
+      default: 'python'
 
   autocompleteViews: []
   editorSubscription: null
