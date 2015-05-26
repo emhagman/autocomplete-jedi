@@ -1,6 +1,6 @@
-'.editor':
+'atom-text-editor':
   'ctrl-alt-space': 'autocomplete-jedi:toggle'
 
-'.autocomplete-jedi .mini.editor input':
+'.autocomplete-jedi atom-text-editor[mini] input':
   'enter': 'core:confirm'
   'tab': 'core:confirm'
